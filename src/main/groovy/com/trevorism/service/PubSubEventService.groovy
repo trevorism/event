@@ -8,7 +8,6 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.ProjectTopicName
 import com.google.pubsub.v1.PubsubMessage
 import com.trevorism.https.SecureHttpClient
-import com.trevorism.micronaut.TrevorismCorrelationFilter
 import io.micronaut.http.HttpRequest
 import io.micronaut.runtime.http.scope.RequestScope
 
@@ -19,7 +18,6 @@ class PubSubEventService implements EventService{
 
     private static final Logger log = Logger.getLogger(PubSubEventService.class.name)
     private Gson gson = (new GsonBuilder()).setDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").create()
-
 
     String sendEvent(String topicName, Map<String, Object> data, HttpRequest<?> request) {
         String json = gson.toJson(data)
@@ -38,7 +36,7 @@ class PubSubEventService implements EventService{
 
     private static PubsubMessage createPubsubMessage(String json, String topicName, HttpRequest<?> request) {
         ByteString byteString = ByteString.copyFromUtf8(json)
-        def attributesMap = ["topic": topicName]
+        def attributesMap = ["topic": topicName, "Content-Type": "application/json"]
         attributesMap = addCorrelationId(request, attributesMap)
         attributesMap = addToken(request, attributesMap)
 
@@ -59,7 +57,7 @@ class PubSubEventService implements EventService{
     private static def addToken(HttpRequest<?> request, Map attributesMap) {
         String bearerToken = request.getHeaders().get(SecureHttpClient.AUTHORIZATION)
         if (bearerToken && bearerToken.toLowerCase().startsWith(SecureHttpClient.BEARER_))
-            attributesMap.put("token", bearerToken.substring(SecureHttpClient.BEARER_.length()))
+            attributesMap.put(SecureHttpClient.AUTHORIZATION, bearerToken)
         return attributesMap
     }
 }

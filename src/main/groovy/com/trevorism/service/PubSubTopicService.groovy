@@ -5,14 +5,15 @@ import com.google.pubsub.v1.ListTopicsRequest
 import com.google.pubsub.v1.ProjectName
 import com.google.pubsub.v1.Topic
 import com.google.pubsub.v1.TopicName
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-import java.util.logging.Logger
 
 @jakarta.inject.Singleton
 class PubSubTopicService implements TopicService {
 
     private TopicAdminClient topicAdminClient = TopicAdminClient.create()
-    private static final Logger log = Logger.getLogger(TopicService.class.name)
+    private static final Logger log = LoggerFactory.getLogger(PubSubTopicService.class.name)
 
     @Override
     boolean createTopic(String topicId) {
@@ -21,7 +22,7 @@ class PubSubTopicService implements TopicService {
             Topic topic = topicAdminClient.createTopic(topicName)
             return topic
         } catch (Exception e) {
-            log.warning("Failed to create topic: ${e.message}")
+            log.warn("Failed to create topic: ${e.message}")
             return false
         }
     }
@@ -36,15 +37,15 @@ class PubSubTopicService implements TopicService {
     }
 
     String getTopic(String topic) {
-        return topicAdminClient.getTopic(topic)?.name
+        return topicAdminClient.getTopic("projects/${EventService.PROJECT_ID}/topics/$topic")?.name
     }
 
     boolean deleteTopic(String topic) {
         try {
-            topicAdminClient.deleteTopic(topic)
+            topicAdminClient.deleteTopic("projects/${EventService.PROJECT_ID}/topics/$topic")
             return true
         } catch (Exception e) {
-            log.warning("Failed to delete topic: ${e.message}")
+            log.warn("Failed to delete topic: ${e.message}")
             return false
         }
     }
