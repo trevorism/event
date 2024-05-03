@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.info.Info
 
 @OpenAPIDefinition(
         info = @Info(
-                title = "App",
+                title = "Event API",
                 version = "0.0.1",
-                description = "API",
+                description = "Send events and register subscribers to them",
                 contact = @Contact(url = "https://trevorism.com", name = "Trevor Brooks", email = "tbrooks@trevorism.com")
         )
 )
