@@ -1,5 +1,6 @@
 package com.trevorism.controller
 
+import com.trevorism.model.EventTopic
 import com.trevorism.secure.Roles
 import com.trevorism.secure.Secure
 import com.trevorism.service.EventService
@@ -27,31 +28,25 @@ class TopicController {
     private static final Logger log = LoggerFactory.getLogger(TopicController.class.name)
 
     @Inject
-    EventService eventService
-
-    @Inject
     TopicService topicService
 
     @Tag(name = "Topic Operations")
-    @Operation(summary = "Sends an event on the given topic **Secure")
+    @Operation(summary = "Create a topic **Secure")
     @Status(HttpStatus.CREATED)
-    @Post(value = "{topic}", produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
-    Map<String, Object> sendEvent(String topic, @Body Map<String, Object> data, HttpRequest<?> request) {
-        try {
-            topicService.createTopic(topic)
-            String eventResult = eventService.sendEvent(topic, data, request)
-            log.info("Event sent on topic ${topic}: ${eventResult}")
-            return data
-        } catch (Exception e) {
-            log.error("Unable to create event on topic ${topic}", e)
-            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to create event on topic ${topic}: ${e.message}")
-        }
+    @Post(value = "/", produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+    @Secure(value = Roles.USER, allowInternal = true)
+    EventTopic createTopic(@Body EventTopic eventTopic) {
+        boolean success = topicService.createTopic(eventTopic.name)
+        if(success)
+            return eventTopic
+
+        throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to create event on topic ${eventTopic.name}")
     }
 
     @Tag(name = "Topic Operations")
-    @Operation(summary = "Get all topics")
+    @Operation(summary = "Get all topics  **Secure")
     @Get(value = "/", produces = MediaType.APPLICATION_JSON)
-    @Secure(value = Roles.USER, allowInternal = true)
+    @Secure(value = Roles.USER)
     List<String> listTopics() {
         try {
             return topicService.allTopics
@@ -64,13 +59,13 @@ class TopicController {
     @Tag(name = "Topic Operations")
     @Operation(summary = "Get topic details **Secure")
     @Get(value = "{topic}", produces = MediaType.TEXT_PLAIN)
-    @Secure(value = Roles.USER, allowInternal = true)
-    String readAll(String topic) {
+    @Secure(value = Roles.USER)
+    String getTopicDetails(String topic) {
         try {
             return topicService.getTopic(topic)
         } catch (Exception e) {
             log.warn("Unable to find topic ${topic}", e)
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to find topic ${topic}: ${e.message}")
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to find topic ${topic}")
         }
     }
 
@@ -78,12 +73,11 @@ class TopicController {
     @Operation(summary = "Delete a topic **Secure")
     @Delete(value = "{topic}", produces = MediaType.APPLICATION_JSON)
     @Secure(value = Roles.USER, allowInternal = true)
-    boolean delete(String topic) {
-        try {
-            return topicService.deleteTopic(topic)
-        } catch (Exception e) {
-            log.warn("Unable to delete topic ${topic}", e)
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to delete topic ${topic}: ${e.message}")
-        }
+    EventTopic delete(String topic) {
+        boolean success = topicService.deleteTopic(topic)
+        if(success)
+            return new EventTopic(name: topic)
+
+        throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to delete topic ${topic}")
     }
 }

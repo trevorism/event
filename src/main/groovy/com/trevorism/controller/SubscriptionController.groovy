@@ -27,7 +27,7 @@ class SubscriptionController {
     SubscriptionService subscriptionService
 
     @Tag(name = "Subscription Operations")
-    @Operation(summary = "Get all subscriptions")
+    @Operation(summary = "Get all subscriptions **Secure")
     @Get(value = "/", produces = MediaType.APPLICATION_JSON)
     @Secure(value = Roles.USER)
     List<EventSubscription> listAllSubscriptions() {
@@ -54,27 +54,30 @@ class SubscriptionController {
 
     @Tag(name = "Subscription Operations")
     @Operation(summary = "Get subscriptions for a given topic **Secure")
-    @Get(value = "{topic}", produces = MediaType.APPLICATION_JSON)
+    @Get(value = "{name}", produces = MediaType.APPLICATION_JSON)
     @Secure(value = Roles.USER)
-    List<EventSubscription> readAll(String topic) {
+    EventSubscription get(String name) {
         try {
-            return subscriptionService.getSubscriptions(topic)
+            return subscriptionService.getSubscription(name)
         } catch (Exception e) {
-            log.warn("Unable to find subscription with topic ${topic}", e)
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to find topic ${topic}: ${e.message}")
+            log.warn("Unable to find subscription ${name}", e)
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to find subscription ${name}")
         }
     }
 
     @Tag(name = "Subscription Operations")
     @Operation(summary = "Delete a topic subscription **Secure")
-    @Delete(value = "{topic}/{name}", produces = MediaType.APPLICATION_JSON)
+    @Delete(value = "{name}", produces = MediaType.APPLICATION_JSON)
     @Secure(value = Roles.USER)
-    EventSubscription delete(String topic, String name) {
+    EventSubscription delete(String name) {
         try {
-            return subscriptionService.delete(topic, name)
+            EventSubscription subscription = subscriptionService.getSubscription(name)
+            if(subscriptionService.delete(name))
+                return subscription
+            throw new Exception("Unable to delete subscription ${name}")
         } catch (Exception e) {
             log.warn("Unable to delete subscription ${name}", e)
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Unable to delete topic ${topic}: ${e.message}")
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, e.message)
         }
     }
 }

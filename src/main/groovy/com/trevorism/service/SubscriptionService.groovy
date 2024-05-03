@@ -5,8 +5,8 @@ import com.trevorism.model.EventSubscription
 interface SubscriptionService {
 
     List<EventSubscription> getAllSubscriptions()
-    List<EventSubscription> getSubscriptions(String topic)
+    EventSubscription getSubscription(String name)
 
     EventSubscription create(EventSubscription eventSubscription)
-    boolean delete(String topic, String name)
+    boolean delete(String name)
 }

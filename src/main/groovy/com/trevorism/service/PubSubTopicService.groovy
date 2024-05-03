@@ -12,8 +12,10 @@ import org.slf4j.LoggerFactory
 @jakarta.inject.Singleton
 class PubSubTopicService implements TopicService {
 
-    private TopicAdminClient topicAdminClient = TopicAdminClient.create()
+    public static final String TOPIC_PREFIX = "projects/${EventService.PROJECT_ID}/topics/"
     private static final Logger log = LoggerFactory.getLogger(PubSubTopicService.class.name)
+
+    private TopicAdminClient topicAdminClient = TopicAdminClient.create()
 
     @Override
     boolean createTopic(String topicId) {
@@ -31,18 +33,18 @@ class PubSubTopicService implements TopicService {
         ListTopicsRequest listTopicsRequest = ListTopicsRequest.newBuilder().setProject(ProjectName.format(EventService.PROJECT_ID)).build()
         List<String> topics = []
         for (Topic topic : topicAdminClient.listTopics(listTopicsRequest).iterateAll()) {
-            topics << topic.name.substring("projects/${EventService.PROJECT_ID}/topics/".length())
+            topics << topic.name.substring(TOPIC_PREFIX.length())
         }
         return topics
     }
 
     String getTopic(String topic) {
-        return topicAdminClient.getTopic("projects/${EventService.PROJECT_ID}/topics/$topic")?.name
+        return topicAdminClient.getTopic("$TOPIC_PREFIX$topic")?.name
     }
 
     boolean deleteTopic(String topic) {
         try {
-            topicAdminClient.deleteTopic("projects/${EventService.PROJECT_ID}/topics/$topic")
+            topicAdminClient.deleteTopic("$TOPIC_PREFIX$topic")
             return true
         } catch (Exception e) {
             log.warn("Failed to delete topic: ${e.message}")

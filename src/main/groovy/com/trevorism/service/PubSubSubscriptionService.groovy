@@ -1,6 +1,7 @@
 package com.trevorism.service
 
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient
+import com.google.pubsub.v1.DeadLetterPolicy
 import com.google.pubsub.v1.ListSubscriptionsRequest
 import com.google.pubsub.v1.ProjectName
 import com.google.pubsub.v1.PushConfig
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory
 @jakarta.inject.Singleton
 class PubSubSubscriptionService implements SubscriptionService{
 
+    public static final GString SUBSCRIPTION_PREFIX = "projects/${EventService.PROJECT_ID}/subscriptions/"
     private SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create()
     private static final Logger log = LoggerFactory.getLogger(PubSubSubscriptionService.class.name)
 
@@ -28,8 +30,9 @@ class PubSubSubscriptionService implements SubscriptionService{
     }
 
     @Override
-    List<EventSubscription> getSubscriptions(String topic) {
-        return getAllSubscriptions().findAll { it.topic == topic }
+    EventSubscription getSubscription(String name) {
+        Subscription subscription = subscriptionAdminClient.getSubscription("$SUBSCRIPTION_PREFIX${name}")
+        return createSubscriber(subscription)
     }
 
     @Override
@@ -40,7 +43,20 @@ class PubSubSubscriptionService implements SubscriptionService{
             PushConfig.NoWrapper noWrapper = PushConfig.NoWrapper.newBuilder().setWriteMetadata(true).build()
             PushConfig pushConfig = PushConfig.newBuilder().setPushEndpoint(eventSubscription.url).setNoWrapper(noWrapper).build()
 
-            Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionName, topicName, pushConfig, eventSubscription.ackDeadlineSeconds)
+            DeadLetterPolicy deadLetterPolicy = DeadLetterPolicy.newBuilder()
+                    .setDeadLetterTopic("${PubSubTopicService.TOPIC_PREFIX}dead-letter-topic")
+                    .setMaxDeliveryAttempts(5)
+                    .build()
+
+            Subscription subscriptionToCreate = Subscription.newBuilder()
+                    .setName(subscriptionName.toString())
+                    .setTopic(topicName.toString())
+                    .setPushConfig(pushConfig)
+                    .setAckDeadlineSeconds(eventSubscription.ackDeadlineSeconds)
+                    .setDeadLetterPolicy(deadLetterPolicy)
+                    .build()
+
+            Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
             return createSubscriber(subscription)
         } catch (Exception e) {
             log.warn("Failed to create subscription: ${e.message}")
@@ -49,9 +65,9 @@ class PubSubSubscriptionService implements SubscriptionService{
     }
 
     @Override
-    boolean delete(String topic, String name) {
+    boolean delete(String name) {
         try{
-            subscriptionAdminClient.deleteSubscription("projects/${EventService.PROJECT_ID}/subscriptions/${name}")
+            subscriptionAdminClient.deleteSubscription("$SUBSCRIPTION_PREFIX${name}")
             return true
         }catch (Exception e) {
             log.warn("Failed to delete subscription: ${name}", e)
@@ -64,9 +80,9 @@ class PubSubSubscriptionService implements SubscriptionService{
             return null
 
         EventSubscription subscriber = new EventSubscription()
-        subscriber.name = subscription.name.substring("projects/${EventService.PROJECT_ID}/subscriptions/".length())
+        subscriber.name = subscription.name.substring(SUBSCRIPTION_PREFIX.length())
         subscriber.url = subscription.getPushConfig().pushEndpoint
-        subscriber.topic = subscription.topic.substring("projects/${EventService.PROJECT_ID}/topics/".length())
+        subscriber.topic = subscription.topic.substring(PubSubTopicService.TOPIC_PREFIX.length())
         subscriber.ackDeadlineSeconds = subscription.getAckDeadlineSeconds()
         return subscriber
     }
