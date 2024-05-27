@@ -6,3 +6,5 @@
 
 # How to build
 `gradle clean build`
+
+API enables events. Send events, register topics and subscriptions for publishing and subscribing to events. 
