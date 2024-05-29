@@ -93,6 +93,8 @@ appengine {
     deploy {
         projectId = "trevorism-data"
         version = "0-2-0"
+        stopPreviousVersion = true
+        promote = true
     }
 }
 
