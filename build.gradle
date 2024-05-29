@@ -17,7 +17,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.google.cloud.tools:appengine-gradle-plugin:2.8.0'
-        classpath 'com.trevorism:gradle-acceptance-plugin:2.3.1'
+        classpath 'com.trevorism:gradle-acceptance-plugin:2.6.0'
     }
 }
 
@@ -94,3 +94,19 @@ appengine {
         version = "0-2-0"
     }
 }
+
+test {
+    systemProperty ("trevorism.test.event", findProperty("trevorism.test.event") == "enabled" ? project.name : null)
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.1
+            }
+        }
+    }
+}
+
+build.dependsOn jacocoTestCoverageVerification

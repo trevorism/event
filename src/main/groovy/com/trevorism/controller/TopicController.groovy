@@ -3,9 +3,7 @@ package com.trevorism.controller
 import com.trevorism.model.EventTopic
 import com.trevorism.secure.Roles
 import com.trevorism.secure.Secure
-import com.trevorism.service.EventService
 import com.trevorism.service.TopicService
-import io.micronaut.http.HttpRequest
 import io.micronaut.http.HttpStatus
 import io.micronaut.http.MediaType
 import io.micronaut.http.annotation.Body
