@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 class PubSubSubscriptionService implements SubscriptionService{
 
     public static final GString SUBSCRIPTION_PREFIX = "projects/${EventService.PROJECT_ID}/subscriptions/"
+    public static final int MAX_DELIVERY_ATTEMPTS = 4
     private SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create()
     private static final Logger log = LoggerFactory.getLogger(PubSubSubscriptionService.class.name)
 
@@ -45,7 +46,7 @@ class PubSubSubscriptionService implements SubscriptionService{
 
             DeadLetterPolicy deadLetterPolicy = DeadLetterPolicy.newBuilder()
                     .setDeadLetterTopic("${PubSubTopicService.TOPIC_PREFIX}dead-letter-topic")
-                    .setMaxDeliveryAttempts(5)
+                    .setMaxDeliveryAttempts(MAX_DELIVERY_ATTEMPTS)
                     .build()
 
             Subscription subscriptionToCreate = Subscription.newBuilder()

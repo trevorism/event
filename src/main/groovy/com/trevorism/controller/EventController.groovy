@@ -27,14 +27,14 @@ class EventController {
     @Operation(summary = "Sends an event on the given topic")
     @Status(HttpStatus.CREATED)
     @Post(value = "{topic}", produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
-    String sendEvent(String topic, @Body Map<String, Object> data, HttpRequest<?> request) {
+    Map<String, Object> sendEvent(String topic, @Body Map<String, Object> data, HttpRequest<?> request) {
         try {
             String eventResult = eventService.sendEvent(topic, data, request)
             log.info("Event sent on topic ${topic}: ${eventResult}")
-            return eventResult
+            return data
         } catch (Exception e) {
-            log.error("Unable to create event on topic ${topic}", e)
-            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to create event on topic ${topic}: ${e.message}")
+            log.error("Unable to send event on topic ${topic}", e)
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to send event on topic ${topic}: ${e.message}")
         }
     }
 }

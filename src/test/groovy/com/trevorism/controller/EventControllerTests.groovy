@@ -9,7 +9,7 @@ class EventControllerTests {
     void testSendEvent(){
         EventController eventController = new EventController()
         eventController.eventService = [sendEvent: {String event, map, request -> event}] as EventService
-        assert eventController.sendEvent("test", [:], null) == "test"
+        assert eventController.sendEvent("test", [x:"y"], null) == [x:"y"]
     }
 
     @Test
@@ -17,9 +17,9 @@ class EventControllerTests {
         EventController eventController = new EventController()
         eventController.eventService = [sendEvent: {String event, map, request -> throw new Exception()}] as EventService
         try{
-            assert eventController.sendEvent("test", [:], null)
+            assert eventController.sendEvent("test", [x:"y"], null)
             assert false
-        }catch (Exception e){
+        }catch (Exception ignored){
             assert true
         }
     }

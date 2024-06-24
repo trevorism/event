@@ -10,13 +10,13 @@ import com.google.pubsub.v1.PubsubMessage
 import com.trevorism.https.SecureHttpClient
 import io.micronaut.http.HttpRequest
 import io.micronaut.runtime.http.scope.RequestScope
-
-import java.util.logging.Logger
+import io.micronaut.security.authentication.ServerAuthentication
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 @RequestScope
 class PubSubEventService implements EventService{
-
-    private static final Logger log = Logger.getLogger(PubSubEventService.class.name)
+    private static final Logger log = LoggerFactory.getLogger(PubSubEventService.class.name)
     private Gson gson = (new GsonBuilder()).setDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").create()
 
     String sendEvent(String topicName, Map<String, Object> data, HttpRequest<?> request) {
@@ -28,7 +28,7 @@ class PubSubEventService implements EventService{
     private static String sendMessage(String topicName, PubsubMessage pubsubMessage) {
         ProjectTopicName topic = ProjectTopicName.of(EventService.PROJECT_ID, topicName)
         Publisher publisher = Publisher.newBuilder(topic).build()
-        log.info("Sending message to topic ${topicName}")
+        log.debug("Sending message to topic ${topicName}")
         ApiFuture<String> future = publisher.publish(pubsubMessage)
         publisher.shutdown()
         return future.get()
@@ -39,6 +39,7 @@ class PubSubEventService implements EventService{
         def attributesMap = ["topic": topicName, "Content-Type": "application/json"]
         attributesMap = addCorrelationId(request, attributesMap)
         attributesMap = addToken(request, attributesMap)
+        attributesMap = addTenantId(request, attributesMap)
 
         PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
                 .setData(byteString)
@@ -48,16 +49,30 @@ class PubSubEventService implements EventService{
     }
 
     private static def addCorrelationId(HttpRequest<?> request, Map attributesMap) {
-        String correlationId = request.getAttribute("X-Correlation-ID").get()
+        String correlationId = request.getHeaders().get("X-Correlation-ID")
         if (correlationId)
-            attributesMap.put("correlationId", correlationId)
+            attributesMap.put("correlationId", correlationId.toString())
+        else
+            attributesMap.put("correlationId", UUID.randomUUID().toString())
+        log.debug("Event correlationId: ${attributesMap.get("correlationId")}")
         return attributesMap
     }
 
     private static def addToken(HttpRequest<?> request, Map attributesMap) {
-        String bearerToken = request.getHeaders().get(SecureHttpClient.AUTHORIZATION)
-        if (bearerToken && bearerToken.toLowerCase().startsWith(SecureHttpClient.BEARER_))
-            attributesMap.put(SecureHttpClient.AUTHORIZATION, bearerToken)
+        String authHeader = request.getHeaders().get(SecureHttpClient.AUTHORIZATION)
+        if (authHeader && authHeader.toLowerCase().startsWith(SecureHttpClient.BEARER_.toLowerCase()))
+            attributesMap.put(SecureHttpClient.AUTHORIZATION, authHeader)
+        return attributesMap
+    }
+
+    private static def addTenantId(HttpRequest<?> request, Map attributesMap) {
+        Optional<ServerAuthentication> wrappedTenant = request.getAttribute("micronaut.AUTHENTICATION", ServerAuthentication)
+        if(wrappedTenant.isPresent()) {
+            def tenant = wrappedTenant.get()?.attributes?.get("tenant")
+            if(tenant){
+                attributesMap.put("X-Tenant-ID", tenant)
+            }
+        }
         return attributesMap
     }
 }
