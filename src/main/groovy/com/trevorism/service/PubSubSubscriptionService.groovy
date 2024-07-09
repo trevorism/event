@@ -1,24 +1,17 @@
 package com.trevorism.service
 
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient
-import com.google.cloud.pubsub.v1.TopicAdminClient
 import com.google.iam.v1.Binding
 import com.google.iam.v1.GetIamPolicyRequest
 import com.google.iam.v1.Policy
 import com.google.iam.v1.SetIamPolicyRequest
-import com.google.pubsub.v1.DeadLetterPolicy
-import com.google.pubsub.v1.ListSubscriptionsRequest
-import com.google.pubsub.v1.ProjectName
-import com.google.pubsub.v1.PushConfig
-import com.google.pubsub.v1.Subscription
-import com.google.pubsub.v1.SubscriptionName
-import com.google.pubsub.v1.TopicName
+import com.google.pubsub.v1.*
 import com.trevorism.model.EventSubscription
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 @jakarta.inject.Singleton
-class PubSubSubscriptionService implements SubscriptionService{
+class PubSubSubscriptionService implements SubscriptionService {
 
     public static final GString SUBSCRIPTION_PREFIX = "projects/${EventService.PROJECT_ID}/subscriptions/"
     public static final int MAX_DELIVERY_ATTEMPTS = 5
@@ -62,19 +55,21 @@ class PubSubSubscriptionService implements SubscriptionService{
                 .build()
 
         Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
-        assignSubscriberRoleToDeadLetterTopic()
+        assignSubscriberRoleToSubscription(subscriptionName.toString())
         return createSubscriber(subscription)
     }
 
-    private static void assignSubscriberRoleToDeadLetterTopic() {
-        String projectId = EventService.PROJECT_ID
-        String serviceAccountEmail = "service-381816155418@gcp-sa-pubsub.iam.gserviceaccount.com"
-        TopicName topicName = TopicName.of(projectId, "dead-letter-topic")
-        GetIamPolicyRequest request = GetIamPolicyRequest.newBuilder()
-                .setResource(topicName.toString())
-                .build()
-        try (TopicAdminClient topicAdminClient = TopicAdminClient.create()) {
-            Policy policy = topicAdminClient.getIamPolicy(request)
+    private void assignSubscriberRoleToSubscription(String subscriptionNameString) {
+        try {
+            String projectId = EventService.PROJECT_ID
+
+            SubscriptionName subscriptionName = SubscriptionName.of(projectId, subscriptionNameString)
+            GetIamPolicyRequest request = GetIamPolicyRequest.newBuilder()
+                    .setResource(subscriptionName.toString())
+                    .build()
+
+            Policy policy = subscriptionAdminClient.getIamPolicy(request)
+            String serviceAccountEmail = "service-381816155418@gcp-sa-pubsub.iam.gserviceaccount.com"
             Binding binding = Binding.newBuilder()
                     .setRole("roles/pubsub.subscriber")
                     .addMembers("serviceAccount:" + serviceAccountEmail)
@@ -82,21 +77,21 @@ class PubSubSubscriptionService implements SubscriptionService{
 
             Policy updatedPolicy = policy.toBuilder().addBindings(binding).build()
             SetIamPolicyRequest setPolicyRequest = SetIamPolicyRequest.newBuilder()
-                    .setResource(topicName.toString())
+                    .setResource(subscriptionName.toString())
                     .setPolicy(updatedPolicy)
                     .build()
-            topicAdminClient.setIamPolicy(setPolicyRequest)
+            subscriptionAdminClient.setIamPolicy(setPolicyRequest)
         } catch (Exception e) {
-            log.error("Failed to assign subscriber role to dead letter topic", e)
+            log.warn("Failed to assign subscriber role to subscription", e)
         }
     }
 
     @Override
     boolean delete(String name) {
-        try{
+        try {
             subscriptionAdminClient.deleteSubscription("$SUBSCRIPTION_PREFIX${name}")
             return true
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.warn("Failed to delete subscription: ${name}", e)
             return false
         }
