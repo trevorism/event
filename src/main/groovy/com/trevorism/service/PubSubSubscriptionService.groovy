@@ -59,13 +59,10 @@ class PubSubSubscriptionService implements SubscriptionService {
         return createSubscriber(subscription)
     }
 
-    private void assignSubscriberRoleToSubscription(String subscriptionNameString) {
+    private void assignSubscriberRoleToSubscription(String subscriptionName) {
         try {
-            String projectId = EventService.PROJECT_ID
-
-            SubscriptionName subscriptionName = SubscriptionName.of(projectId, subscriptionNameString)
             GetIamPolicyRequest request = GetIamPolicyRequest.newBuilder()
-                    .setResource(subscriptionName.toString())
+                    .setResource(subscriptionName)
                     .build()
 
             Policy policy = subscriptionAdminClient.getIamPolicy(request)
@@ -77,7 +74,7 @@ class PubSubSubscriptionService implements SubscriptionService {
 
             Policy updatedPolicy = policy.toBuilder().addBindings(binding).build()
             SetIamPolicyRequest setPolicyRequest = SetIamPolicyRequest.newBuilder()
-                    .setResource(subscriptionName.toString())
+                    .setResource(subscriptionName)
                     .setPolicy(updatedPolicy)
                     .build()
             subscriptionAdminClient.setIamPolicy(setPolicyRequest)
