@@ -1,3 +1,7 @@
+# 0.3.1
+
+Update dependencies
+
 # 0.3.0
 
 Add tenant Id to authenticated events. Update dependencies.

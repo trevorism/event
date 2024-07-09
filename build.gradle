@@ -60,9 +60,9 @@ dependencies {
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
-    implementation 'com.google.cloud:google-cloud-pubsub:1.130.1'
+    implementation 'com.google.cloud:google-cloud-pubsub:1.131.0'
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
-    implementation 'com.trevorism:micronaut-utility-beans:1.5.0'
+    implementation 'com.trevorism:micronaut-utility-beans:1.6.0'
     implementation 'com.google.code.gson:gson:2.11.0'
 
     testImplementation 'com.trevorism:test-result-events:0.3.0'
@@ -92,7 +92,7 @@ appengine {
     stage.artifact = layout.buildDirectory.file("libs/${project.name}-all.jar")
     deploy {
         projectId = "trevorism-data"
-        version = "0-3-0"
+        version = "0-3-1"
         stopPreviousVersion = true
         promote = true
     }

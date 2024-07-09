@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 class PubSubSubscriptionService implements SubscriptionService{
 
     public static final GString SUBSCRIPTION_PREFIX = "projects/${EventService.PROJECT_ID}/subscriptions/"
-    public static final int MAX_DELIVERY_ATTEMPTS = 4
+    public static final int MAX_DELIVERY_ATTEMPTS = 5
     private SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create()
     private static final Logger log = LoggerFactory.getLogger(PubSubSubscriptionService.class.name)
 
@@ -38,31 +38,26 @@ class PubSubSubscriptionService implements SubscriptionService{
 
     @Override
     EventSubscription create(EventSubscription eventSubscription) {
-        try {
-            TopicName topicName = TopicName.of(EventService.PROJECT_ID, eventSubscription.topic)
-            SubscriptionName subscriptionName = SubscriptionName.of(EventService.PROJECT_ID, eventSubscription.name)
-            PushConfig.NoWrapper noWrapper = PushConfig.NoWrapper.newBuilder().setWriteMetadata(true).build()
-            PushConfig pushConfig = PushConfig.newBuilder().setPushEndpoint(eventSubscription.url).setNoWrapper(noWrapper).build()
+        TopicName topicName = TopicName.of(EventService.PROJECT_ID, eventSubscription.topic)
+        SubscriptionName subscriptionName = SubscriptionName.of(EventService.PROJECT_ID, eventSubscription.name)
+        PushConfig.NoWrapper noWrapper = PushConfig.NoWrapper.newBuilder().setWriteMetadata(true).build()
+        PushConfig pushConfig = PushConfig.newBuilder().setPushEndpoint(eventSubscription.url).setNoWrapper(noWrapper).build()
 
-            DeadLetterPolicy deadLetterPolicy = DeadLetterPolicy.newBuilder()
-                    .setDeadLetterTopic("${PubSubTopicService.TOPIC_PREFIX}dead-letter-topic")
-                    .setMaxDeliveryAttempts(MAX_DELIVERY_ATTEMPTS)
-                    .build()
+        DeadLetterPolicy deadLetterPolicy = DeadLetterPolicy.newBuilder()
+                .setDeadLetterTopic("${PubSubTopicService.TOPIC_PREFIX}dead-letter-topic")
+                .setMaxDeliveryAttempts(MAX_DELIVERY_ATTEMPTS)
+                .build()
 
-            Subscription subscriptionToCreate = Subscription.newBuilder()
-                    .setName(subscriptionName.toString())
-                    .setTopic(topicName.toString())
-                    .setPushConfig(pushConfig)
-                    .setAckDeadlineSeconds(eventSubscription.ackDeadlineSeconds)
-                    .setDeadLetterPolicy(deadLetterPolicy)
-                    .build()
+        Subscription subscriptionToCreate = Subscription.newBuilder()
+                .setName(subscriptionName.toString())
+                .setTopic(topicName.toString())
+                .setPushConfig(pushConfig)
+                .setAckDeadlineSeconds(eventSubscription.ackDeadlineSeconds)
+                .setDeadLetterPolicy(deadLetterPolicy)
+                .build()
 
-            Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
-            return createSubscriber(subscription)
-        } catch (Exception e) {
-            log.warn("Failed to create subscription: ${e.message}")
-            return EventSubscription.NULL_SUBSCRIPTION
-        }
+        Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
+        return createSubscriber(subscription)
     }
 
     @Override
