@@ -1,6 +1,11 @@
 package com.trevorism.service
 
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient
+import com.google.cloud.pubsub.v1.TopicAdminClient
+import com.google.iam.v1.Binding
+import com.google.iam.v1.GetIamPolicyRequest
+import com.google.iam.v1.Policy
+import com.google.iam.v1.SetIamPolicyRequest
 import com.google.pubsub.v1.DeadLetterPolicy
 import com.google.pubsub.v1.ListSubscriptionsRequest
 import com.google.pubsub.v1.ProjectName
@@ -57,7 +62,33 @@ class PubSubSubscriptionService implements SubscriptionService{
                 .build()
 
         Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
+        assignSubscriberRoleToDeadLetterTopic()
         return createSubscriber(subscription)
+    }
+
+    private static void assignSubscriberRoleToDeadLetterTopic() {
+        String projectId = EventService.PROJECT_ID
+        String serviceAccountEmail = "service-381816155418@gcp-sa-pubsub.iam.gserviceaccount.com"
+        TopicName topicName = TopicName.of(projectId, "dead-letter-topic")
+        GetIamPolicyRequest request = GetIamPolicyRequest.newBuilder()
+                .setResource(topicName.toString())
+                .build()
+        try (TopicAdminClient topicAdminClient = TopicAdminClient.create()) {
+            Policy policy = topicAdminClient.getIamPolicy(request)
+            Binding binding = Binding.newBuilder()
+                    .setRole("roles/pubsub.subscriber")
+                    .addMembers("serviceAccount:" + serviceAccountEmail)
+                    .build()
+
+            Policy updatedPolicy = policy.toBuilder().addBindings(binding).build()
+            SetIamPolicyRequest setPolicyRequest = SetIamPolicyRequest.newBuilder()
+                    .setResource(topicName.toString())
+                    .setPolicy(updatedPolicy)
+                    .build()
+            topicAdminClient.setIamPolicy(setPolicyRequest)
+        } catch (Exception e) {
+            log.error("Failed to assign subscriber role to dead letter topic", e)
+        }
     }
 
     @Override

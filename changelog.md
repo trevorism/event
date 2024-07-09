@@ -1,3 +1,7 @@
+# 0.4.0
+
+Automatically assign dead-letter subscriber roles for subscriptions.
+
 # 0.3.1
 
 Update dependencies, fix bug with subscription creation.
