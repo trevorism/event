@@ -1,6 +1,6 @@
 # 0.3.1
 
-Update dependencies
+Update dependencies, fix bug with subscription creation.
 
 # 0.3.0
 
