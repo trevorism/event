@@ -48,7 +48,7 @@ class SubscriptionController {
             return subscriptionService.create(subscription)
         } catch (Exception e) {
             log.error("Unable to create subscription on topic ${subscription.topic}", e)
-            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to create subscription on topic ${topic}: ${e.message}")
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to create subscription on topic ${subscription.topic}: ${e.message}")
         }
     }
 

@@ -48,6 +48,6 @@ class RootController {
     @ApiResponse(responseCode = "200", content = @Content(mediaType = "text/plain", schema = @Schema(type = "string")))
     @Get(value = "/version", produces = MediaType.TEXT_PLAIN)
     String version() {
-        return "0-3-1"
+        return "0-4-0"
     }
 }
