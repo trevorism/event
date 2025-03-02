@@ -5,6 +5,7 @@ import com.google.iam.v1.Binding
 import com.google.iam.v1.GetIamPolicyRequest
 import com.google.iam.v1.Policy
 import com.google.iam.v1.SetIamPolicyRequest
+import com.google.protobuf.Duration
 import com.google.pubsub.v1.*
 import com.trevorism.model.EventSubscription
 import org.slf4j.Logger
@@ -52,6 +53,7 @@ class PubSubSubscriptionService implements SubscriptionService {
                 .setPushConfig(pushConfig)
                 .setAckDeadlineSeconds(eventSubscription.ackDeadlineSeconds)
                 .setDeadLetterPolicy(deadLetterPolicy)
+                .setExpirationPolicy(ExpirationPolicy.getDefaultInstance())
                 .build()
 
         Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
