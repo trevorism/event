@@ -1,3 +1,7 @@
+# 0.5.0
+
+Upgrade to micronaut 5, java 25. Update dependencies.
+
 # 0.4.0
 
 Automatically assign dead-letter subscriber roles for subscriptions.

@@ -1,4 +1,4 @@
-runtime: java17
+runtime: java25
 service: event
 entrypoint: java -jar event-all.jar
 handlers:
