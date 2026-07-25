@@ -1,5 +1,6 @@
 package com.trevorism.service
 
+import com.google.api.gax.rpc.AlreadyExistsException
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient
 import com.google.iam.v1.Binding
 import com.google.iam.v1.GetIamPolicyRequest
@@ -56,9 +57,22 @@ class PubSubSubscriptionService implements SubscriptionService {
                 .setExpirationPolicy(ExpirationPolicy.getDefaultInstance())
                 .build()
 
-        Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
-        assignSubscriberRoleToSubscription(subscriptionName.toString())
+        Subscription subscription
+        try {
+            subscription = subscriptionAdminClient.createSubscription(subscriptionToCreate)
+            assignSubscriberRoleToSubscription(subscriptionName.toString())
+        } catch (AlreadyExistsException ignored) {
+            subscription = subscriptionAdminClient.getSubscription(subscriptionName.toString())
+            warnOnPushEndpointDrift(eventSubscription, subscription)
+        }
         return createSubscriber(subscription)
+    }
+
+    private static void warnOnPushEndpointDrift(EventSubscription requested, Subscription existing) {
+        String existingUrl = existing.getPushConfig().pushEndpoint
+        if (existingUrl != requested.url) {
+            log.warn("Subscription ${requested.name} already exists and pushes to ${existingUrl}, not the requested ${requested.url}. Delete and recreate it to change the endpoint.")
+        }
     }
 
     private void assignSubscriberRoleToSubscription(String subscriptionName) {
