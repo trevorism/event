@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 @OpenAPIDefinition(
         info = @Info(
                 title = "Event API",
-                version = "0.5.0",
+                version = AppVersion.SEMVER,
                 description = "Send events and register subscribers to them",
                 contact = @Contact(url = "https://trevorism.com", name = "Trevor Brooks", email = "tbrooks@trevorism.com")
         )

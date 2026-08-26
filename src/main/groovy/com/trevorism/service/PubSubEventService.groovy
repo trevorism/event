@@ -11,6 +11,7 @@ import com.trevorism.https.SecureHttpClient
 import io.micronaut.http.HttpRequest
 import io.micronaut.runtime.http.scope.RequestScope
 import io.micronaut.security.authentication.ServerAuthentication
+import jakarta.inject.Inject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -18,6 +19,9 @@ import org.slf4j.LoggerFactory
 class PubSubEventService implements EventService{
     private static final Logger log = LoggerFactory.getLogger(PubSubEventService.class.name)
     private Gson gson = (new GsonBuilder()).setDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").create()
+
+    @Inject
+    TopicElevationService topicElevationService
 
     String sendEvent(String topicName, Map<String, Object> data, HttpRequest<?> request) {
         String json = gson.toJson(data)
@@ -34,11 +38,11 @@ class PubSubEventService implements EventService{
         return future.get()
     }
 
-    private static PubsubMessage createPubsubMessage(String json, String topicName, HttpRequest<?> request) {
+    private PubsubMessage createPubsubMessage(String json, String topicName, HttpRequest<?> request) {
         ByteString byteString = ByteString.copyFromUtf8(json)
         def attributesMap = ["topic": topicName, "Content-Type": "application/json"]
         attributesMap = addCorrelationId(request, attributesMap)
-        attributesMap = addToken(request, attributesMap)
+        attributesMap = addToken(request, attributesMap, topicName)
         attributesMap = addTenantId(request, attributesMap)
 
         PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
@@ -58,10 +62,25 @@ class PubSubEventService implements EventService{
         return attributesMap
     }
 
-    private static def addToken(HttpRequest<?> request, Map attributesMap) {
+    private def addToken(HttpRequest<?> request, Map attributesMap, String topicName) {
         String authHeader = request.getHeaders().get(SecureHttpClient.AUTHORIZATION)
-        if (authHeader && authHeader.toLowerCase().startsWith(SecureHttpClient.BEARER_.toLowerCase()))
+        if (authHeader && authHeader.toLowerCase().startsWith(SecureHttpClient.BEARER_.toLowerCase())) {
             attributesMap.put(SecureHttpClient.AUTHORIZATION, authHeader)
+            return attributesMap
+        }
+        return elevateAnonymousEvent(attributesMap, topicName)
+    }
+
+    private def elevateAnonymousEvent(Map attributesMap, String topicName) {
+        if (!topicElevationService?.requiresElevation(topicName)) {
+            return attributesMap
+        }
+
+        String internalToken = topicElevationService.mintInternalToken(null)
+        if (internalToken) {
+            attributesMap.put(SecureHttpClient.AUTHORIZATION, "${SecureHttpClient.BEARER_}${internalToken}".toString())
+            log.debug("Elevated anonymous event on topic ${topicName} with an internal token")
+        }
         return attributesMap
     }
 
