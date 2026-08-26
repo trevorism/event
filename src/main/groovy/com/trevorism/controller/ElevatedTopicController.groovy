@@ -19,7 +19,7 @@ import jakarta.inject.Inject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@Controller("/api/elevation")
+@Controller("/elevation")
 class ElevatedTopicController {
 
     private static final Logger log = LoggerFactory.getLogger(ElevatedTopicController.class.name)

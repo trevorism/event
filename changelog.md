@@ -1,3 +1,7 @@
+## 0.7.0
+
+Change /api/elevation to /elevation
+
 ## 0.6.0
 
 Update dependencies and add an endpoint to add an internal token to unauthenticated events.
